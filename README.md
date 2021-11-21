@@ -1,2 +1,2 @@
 # EE660_proj
-USC EE660 Project from Jionhao Fang and Xuan Shi
+USC EE660 Project from Jionghao Fang and Xuan Shi
