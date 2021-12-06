@@ -20,6 +20,10 @@ def train_eval_worker(model, label_percent,
         feat_train = train_feat[:num_labeled, :]
         label_train = train_orig_label[:num_labeled]
         model.fit(feat_train, label_train)
+    elif mode == 'Semi-SL':
+        feat_train = train_feat[:-100, :]
+        label_train = train_label[:-100]
+        model.fit(feat_train, label_train)
     else:
         raise ValueError('Not Implemented')
     return model.score(eval_feat, eval_label)
@@ -53,10 +57,17 @@ def main(args):
     if 'mlp' in args.model_type:
         param_list = [1000, 2000, 5000]
         clf_list.extend([MLPClassifier(max_iter=max_iter) for max_iter in param_list])
+    if 'random_forest' in args.model_type:
+        clf_list.extend([RandomForestClassifier(max_depth=12, n_estimators=40)])
+    if 'adaboost' in args.model_type:
+        clf_list.extend([AdaBoostClassifier(n_estimators=2000, learning_rate = 0.5)])
     ### Semi-Supervised Learning
-    
+    if 'semi_prop' in args.model_type:
+        clf_list.extend([LabelPropagation()])
+    if 'semi_spread' in args.model_type:
+        clf_list.extend([LabelSpreading()])
     ### Proposed Method
-
+    
     ###########################################################################
     # Train & Test
     percentage_list = [100, 20, 30, 40]
@@ -75,7 +86,8 @@ def main(args):
                                         train_label=data.label_list[i],
                                         train_orig_label=data.orig_label_list[i],
                                         eval_feat=data.feat_list[i][-100:,:],
-                                        eval_label=data.orig_label_list[i][-100:])
+                                        eval_label=data.orig_label_list[i][-100:],
+                                        mode='Semi-SL')
                 acc_list_sub.append(acc)
             acc_sub_mean = np.mean(np.array(acc_list_sub))
             acc_sub_std = np.std(np.array(acc_list_sub))
@@ -92,7 +104,8 @@ def main(args):
                                     train_label=data.label_list[i],
                                     train_orig_label=data.orig_label_list[i],
                                     eval_feat=dataset_tst.feat_list[i],
-                                    eval_label=dataset_tst.orig_label_list[i])
+                                    eval_label=dataset_tst.orig_label_list[i],
+                                    mode='Semi-SL')
             acc_list_test.append(acc)
         acc_test_mean = np.mean(np.array(acc_list_test))
         acc_test_std = np.std(np.array(acc_list_test))
