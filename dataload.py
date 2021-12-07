@@ -7,13 +7,9 @@ from sklearn.preprocessing import StandardScaler
 # from imblearn.over_sampling import SMOTE
 from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error as mse
-from sklearn.linear_model import Perceptron
-from sklearn.svm import SVC
-from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.semi_supervised import LabelPropagation,LabelSpreading
-# from wrapper import SKTSVM
+import matplotlib.pyplot as plt
+
+from evaluation import heatmap, annotate_heatmap
 
 """
 @relation vowel
@@ -87,91 +83,55 @@ class VowelDataset:
         return feat
 
 
+    def _preprocessing(self):
+        '''data preprocessing'''
+
+        '''standardize'''
+        def standardscalar(X):   
+            standardScaler = StandardScaler()
+            standardScaler.fit(X)
+            return standardScaler.transform(X)
+
+        '''PCA'''
+        def PCA_Data(X, n=5):
+            pca = PCA(n_components=n)
+            pca.fit(X)
+            X_reduction = pca.transform(X)
+            return X_reduction
+
+        # '''Smote'''
+        # def smote(X, y):
+        #     sm = SMOTE(random_state=42)
+        #     return sm.fit_resample(X, y)
 
 
-'''read data'''
+if __name__ == '__main__':
+    dataset_tst = VowelDataset(data_dir='data/SSC_20labeled', is_train=False)
+    
+    feat_all = []
+    for i in range(10):
+        feat_all.extend(dataset_tst.feat_list[i])
+    feat_all = np.stack(feat_all, axis=0)
 
-'''read all-labeled data(vowel-10-1trs)'''
-df = pd.read_table("data/SSC_20labeled/vowel/vowel-10-1trs.dat")
-df0 = df.iloc[17:,0]
-df00 = df0.tolist()
-data = []
-for i in range(len(df00)):
-    data.append([])
-    l = df00[i].split(',')
-    for j in range(len(l)):
-        data[i].append(float(l[j]))
-feature_all = np.array(data)[:, :-1]
-label_all = np.array(data)[:,-1]
-'''read 20% labeled data(vowel-10-1tra)'''
-df = pd.read_table("data/SSC_20labeled/vowel/vowel-10-1tra.dat")
-df0 = df.iloc[17:,0]
-df00 = df0.tolist()
+    attr_list = ['TT',
+                 'SpeakerID',
+                 'Sex',
+                 'F0',
+                 'F1',
+                 'F2',
+                 'F3',
+                 'F4',
+                 'F5',
+                 'F6',
+                 'F7',
+                 'F8',
+                 'F9',]
 
-#20% labeled data
-n = int(len(df00) * 0.2)
-ssc_20 = df00[0:n]
-data_20 = []
-for i in range(len(ssc_20)):
-    data_20.append([])
-    l = ssc_20[i].split(',')
-    for j in range(len(l)):
-        data_20[i].append(float(l[j]))
-feature_20 = np.array(data_20)
-feature_20 = feature_20[:,:-1]
-label_20 = np.array(data_20)[:,-1]
+    Pearson_mat = np.corrcoef(feat_all.T)
+    fig, ax = plt.subplots()
 
-#80% unlabeled data
-ssc_20_unlabeled = df00[n:]
-feature = []
-for i in range(len(ssc_20_unlabeled)):
-    feature.append(ssc_20_unlabeled[i][:-11])
-
-feature_80 = []
-for i in range(len(feature)):
-    feature_80.append([])
-    l = feature[i].split(',')
-    for j in range(len(l)):
-        feature_80[i].append(float(l[j]))
-feature_80 = np.array(feature_80)
-
-#20% test data
-df = pd.read_table("data/SSC_20labeled/vowel/vowel-10-1tst.dat")
-df0 = df.iloc[17:,0]
-df00 = df0.tolist()
-test = []
-for i in range(len(df00)):
-    test.append([])
-    l = df00[i].split(',')
-    for j in range(len(l)):
-        test[i].append(float(l[j]))
-feature_test = np.array(data)[:, :-1]
-label_test = np.array(data)[:,-1]
-        
-
-
-
-
-
-
-
-'''data preprocessing'''
-
-'''standardize'''
-def standardscalar(X):   
-    standardScaler = StandardScaler()
-    standardScaler.fit(X)
-    return standardScaler.transform(X)
-
-'''PCA'''
-def PCA_Data(X, n=5):
-    pca = PCA(n_components=n)
-    pca.fit(X)
-    X_reduction = pca.transform(X)
-    return X_reduction
-
-# '''Smote'''
-# def smote(X, y):
-#     sm = SMOTE(random_state=42)
-#     return sm.fit_resample(X, y)
-
+    im, cbar = heatmap(Pearson_mat, attr_list, attr_list, ax=ax,
+                       cmap="YlGn",)
+    # texts = annotate_heatmap(im, valfmt="{x:.1f} t")
+    fig.tight_layout()
+    fig.savefig('pearson_mat.pdf')
